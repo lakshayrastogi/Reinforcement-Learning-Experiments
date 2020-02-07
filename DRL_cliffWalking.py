@@ -25,12 +25,21 @@ ACTION_DOWN = 1
 ACTION_LEFT = 2
 ACTION_RIGHT = 3
 ACTIONS = [ACTION_UP, ACTION_DOWN, ACTION_LEFT, ACTION_RIGHT]
+action_count = np.zeros(4)
 
 # initial state action pair values
 START = [3, 0]
 GOAL = [3, 11]
 
+# time variable
+t = 0
+
+# UCB variable
+UCB_param = 5
+UCB = False
+
 def step(state, action):
+    action_count[action] += 1
     i, j = state
     if action == ACTION_UP:
         next_state = [max(i - 1, 0), j]
@@ -53,6 +62,12 @@ def step(state, action):
 
 # choose an action based on epsilon greedy algorithm
 def choose_action(state, q_value):
+    if UCB:
+        UCB_estimation = q_value[state[0], state[1], :] + \
+                UCB_param * np.sqrt(np.log(t + 1) / (action_count + 1e-5))
+        q_best = np.max(UCB_estimation)
+        return np.random.choice(np.where(UCB_estimation == q_best)[0])
+
     if np.random.binomial(1, EPSILON) == 1:
         return np.random.choice(ACTIONS)
     else:
@@ -68,6 +83,8 @@ def sarsa(q_value, expected=False, step_size=ALPHA):
     state = START
     action = choose_action(state, q_value)
     rewards = 0.0
+    t = 0
+    action_count = np.zeros(4)
     while state != GOAL:
         next_state, reward = step(state, action)
         next_action = choose_action(next_state, q_value)
@@ -89,6 +106,7 @@ def sarsa(q_value, expected=False, step_size=ALPHA):
                 reward + target - q_value[state[0], state[1], action])
         state = next_state
         action = next_action
+        t += 1
     return rewards
 
 # an episode with Q-Learning
@@ -98,6 +116,8 @@ def sarsa(q_value, expected=False, step_size=ALPHA):
 def q_learning(q_value, step_size=ALPHA):
     state = START
     rewards = 0.0
+    t = 0
+    action_count = np.zeros(4)
     while state != GOAL:
         action = choose_action(state, q_value)
         next_state, reward = step(state, action)
@@ -107,6 +127,7 @@ def q_learning(q_value, step_size=ALPHA):
                 reward + GAMMA * np.max(q_value[next_state[0], next_state[1], :]) -
                 q_value[state[0], state[1], action])
         state = next_state
+        t += 1
     return rewards
 
 # print optimal policy
@@ -141,36 +162,59 @@ def runExperiment():
     # perform 40 independent runs
     runs = 50
 
-    rewards_sarsa = np.zeros(episodes)
-    rewards_q_learning = np.zeros(episodes)
-    for r in tqdm(range(runs)):
-        q_sarsa = np.zeros((WORLD_HEIGHT, WORLD_WIDTH, 4))
-        q_q_learning = np.copy(q_sarsa)
-        for i in range(0, episodes):
-            # cut off the value by -100 to draw the figure more elegantly
-            rewards_sarsa[i] += max(sarsa(q_sarsa), -100)
-            rewards_q_learning[i] += max(q_learning(q_q_learning), -100)
+    # epsilon values
+    epsilons = [0.5, 0.2, 0.1, 0.05]
 
-    # averaging over independt runs
-    rewards_sarsa /= runs
-    rewards_q_learning /= runs
+    # ucb c values
+    ucb_c = [0.1, 0.5, 1, 5, 10]
 
-    # draw reward curves
-    plt.plot(rewards_sarsa, label='Sarsa')
-    plt.plot(rewards_q_learning, label='Q-Learning')
+    UCB = True
+
+    for num, epsilon in enumerate(ucb_c):
+        EPSILON = epsilon
+        sarsa_str = "rewards_sarsa_e%d = np.zeros(episodes)" % (num)
+        exec(sarsa_str)
+        q_learning_str = "rewards_q_learning_e%d = np.zeros(episodes)" % (num)
+        exec(q_learning_str)
+        for r in tqdm(range(runs)):
+            sarsa_str = "q_sarsa_e%d = np.zeros((WORLD_HEIGHT, WORLD_WIDTH, 4))" % (num)
+            exec(sarsa_str)
+            q_learning_str = "q_q_learning_e%d = np.zeros((WORLD_HEIGHT, WORLD_WIDTH, 4))" % (num)
+            exec(q_learning_str)
+            for i in range(0, episodes):
+                # cut off the value by -100 to draw the figure more elegantly
+                sarsa_str = "rewards_sarsa_e%d[i] += max(sarsa(q_sarsa_e%d), -100)" % (num, num)
+                exec(sarsa_str)
+                q_learning_str = "rewards_q_learning_e%d[i] += max(q_learning(q_q_learning_e%d), -100)" % (num, num)
+                exec(q_learning_str)
+        # averaging over independt runs
+        sarsa_str = "rewards_sarsa_e%d /= runs" % (num)
+        exec(sarsa_str)
+        q_learning_str = "rewards_q_learning_e%d /= runs" % (num)
+        exec(q_learning_str)
+
+        # draw reward curves
+        sarsa_str = "plt.plot(rewards_sarsa_e%d, label='Sarsa_e%d')" % (num, num)
+        exec(sarsa_str)
+        q_learning_str = "plt.plot(rewards_q_learning_e%d, label='Q-Learning_e%d')" % (num, num)
+        exec(q_learning_str)
+    
     plt.xlabel('Episodes')
     plt.ylabel('Sum of rewards during episode')
     plt.ylim([-100, 0])
     plt.legend()
 
-    plt.savefig('DRL_cliffWalking.png')
+    plt.savefig('DRL_cliffWalkingucb.png')
     plt.close()
 
     # display optimal policy
-    print('Sarsa Optimal Policy:')
-    print_optimal_policy(q_sarsa)
-    print('Q-Learning Optimal Policy:')
-    print_optimal_policy(q_q_learning)
+    for num, epsilon in enumerate(ucb_c):
+        print('Sarsa(e' + str(num) + ' Optimal Policy:')
+        sarsa_str = "print_optimal_policy(q_sarsa_e%d)" % (num)
+        exec(sarsa_str)
+        print('Q-Learning(e' + str(num) + ' Optimal Policy:')
+        q_learning_str = "print_optimal_policy(q_q_learning_e%d)" % (num)
+        exec(q_learning_str)
 
 if __name__ == '__main__':
     runExperiment()
