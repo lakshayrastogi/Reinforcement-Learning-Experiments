@@ -3,3 +3,6 @@ Experiments conducted as part of the RL course at IISc or further extensions of 
 
 ### 1. 10-armed bandit
 Evaluate how good greedy, e-greedy and UCB policies are with different learning parameters.
+
+### 2. Cliff Walking
+Evaluate how two algorithms (SARSA and Q-learning) perform in the cliff walking example with different learning parameters.
