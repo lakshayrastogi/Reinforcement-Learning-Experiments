@@ -108,9 +108,9 @@ def simulate(runs, time, bandits):
     return mean_best_action_counts, mean_rewards
 
 def runExperiment(runs=2000, time=1000, stdDev=1):
-    epsilons = [0, 0.1, 0.01, 0.2, 0.5]
+    epsilons = [0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.5]
     bandits = [Bandit(epsilon=eps, sample_averages=True, stdDev=stdDev) for eps in epsilons]
-    ucb_params = [5, 2, 1, 0.5, 0.1]
+    ucb_params = [5, 3, 2, 1, 0.5, 0.1]
     bandits_ucb = [Bandit(epsilon=0, UCB_param=ucb_param, sample_averages=True, stdDev=stdDev) for ucb_param in ucb_params]
 
     best_action_counts1, rewards1 = simulate(runs, time, bandits)
