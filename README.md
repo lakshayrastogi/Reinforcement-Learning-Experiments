@@ -9,3 +9,6 @@ Evaluate how two algorithms (SARSA and Q-learning) perform in the cliff walking 
 
 ### 3. Grid World
 Evaluate how the Monte Carlo first visit and every visit methods differ in their estimation of the values of the states.
+
+### 4. Grid World with Function Approximation
+Using TD Control with averaged reward and linear function approximation, see how the v values converge with different values of c parameter.
