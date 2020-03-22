@@ -85,5 +85,5 @@ def runExperiment(cValue):
 
 if __name__ == '__main__':
 	runExperiment(0.1)
-	#runExperiment(1)
-	#runExperiment(10)
+	runExperiment(1)
+	runExperiment(10)
